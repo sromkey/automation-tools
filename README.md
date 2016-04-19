@@ -3,14 +3,19 @@ Automation Tools
 
 The Automation Tools project is a set of python scripts, that are designed to automate the processing of transfers in an Archivematica pipeline.
 
-Currently, the only automation tool is automate transfers.  It is used to prepare transfers, move them into the pipelines processing location, and take actions when user input is required.  Only one transfer is sent to the pipeline at a time, the scripts wait until the current transfer is resolved (failed, rejected or stored as an AIP) before automatically starting the next available transfer. 
+
+Automated Transfers
+------------------
+
+`transfers/transfer.py` is used to prepare transfers, move them into the pipelines processing location, and take actions when user input is required.
+Only one transfer is sent to the pipeline at a time, the scripts wait until the current transfer is resolved (failed, rejected or stored as an AIP) before automatically starting the next available transfer.
 
 The code is available on [Github](http://github.com/artefactual/automation-tools).
 
 The code is deployed to `/usr/lib/archivematica/automation-tools`.
 
-Deployment
-----------
+
+### Deployment
 
 Suggested deployment is to use cron to run a shell script that runs the automate transfer tool. Example shell script:
 
@@ -26,8 +31,8 @@ The cron entry executes the `transfer-script.sh` script. This should be run as t
 
 When running, automate transfers stores its working state in transfers.db, a sqlite database.  It contains a record of all the transfers that have been processed.  In a testing environment, deleting this file will cause the tools to re-process any and all folders found in the Transfer Source Location. 
 
-Configuration
--------------
+
+### Configuration
 
 This script can be modified, to adjust how automate transfers works.  The full set of parameters that can be changed are:
 
@@ -42,8 +47,8 @@ This script can be modified, to adjust how automate transfers works.  The full s
 * `--files`: If set, start transfers from files as well as folders.
 * `--hide`: If set, hides the Transfer and SIP once completed.
 
-Hooks
------
+
+### Hooks
 
 During processing, automate transfers will run scripts from several places to customize behaviour. These scripts can be in any language. If they are written in Python, we recommend making them source compatible with python 2 or 3.
 
@@ -59,7 +64,7 @@ There are also several scripts provided for common use cases and examples of pro
 These are found in the `examples` directory sorted by their usecase and can be copied or symlinked to the appropriate directory for automation-tools to run them.
 If you write a script that might be useful for others, please make a pull request!
 
-### get-accession-id
+#### get-accession-id
 
 * _Name:_ `get-accession-id`
 * _Location:_ Same directory as transfers.py
@@ -69,7 +74,7 @@ If you write a script that might be useful for others, please make a pull reques
 
 `get-accession-number` is run to customize the accession number of the created transfer. Its single parameter is the path relative to the transfer source location.  Note that no files are locally available when `get-accession-id` is run. It should print to standard output the quoted value of the accession number (e.g. `"ID42"`), `None`, or no output. If the return code is not 0, all output is ignored. This is POSTed to the Archivematica REST API when the transfer is created.
 
-### pre-transfer hooks
+#### pre-transfer hooks
 
 * _Parameters:_ [`absolute path`, `transfer type`]
 
@@ -86,7 +91,7 @@ There are some sample scripts in the pre-transfers directory that may be useful,
 * `add_metadata.py`: Creates a metadata.json file, by parsing data out of the transfer folder name.  This ends up as Dublin Dore in a dmdSec of the final METS file.
 * `default_config.py`: Copies the included `defaultProcessingMCP.xml` into the transfer directory. This file overrides any configuration set in the Archivematica dashboard, so that user choices are guaranteed and avoided as desired.
 
-### user-input
+#### user-input
 
 * _Parameters:_ [`microservice name`, `first time at wait point`, `absolute path` , `unit UUID`, `unit name`, `unit type`]
 
@@ -105,8 +110,8 @@ There are some sample scripts in the pre-transfers directory that may be useful,
 
 * `send_email.py`: Emails the first time a transfer is waitintg for input at Approve Normalization.  It can be edited to change the email addresses it sends notices to, or to change the notification message.
 
-Logs
-----
+
+### Logs
 
 Logs are written to the same directory as the `transfers.py` script. The logging level can be adjusted, by modifying the transfers/transfer.py file. Find the following section and changed `'INFO'` to one of `'INFO'`, `'DEBUG'`, `'WARNING'`, `'ERROR'` or `'CRITICAL'`.
 
@@ -116,6 +121,36 @@ Logs are written to the same directory as the `transfers.py` script. The logging
             'handlers': ['console', 'file'],
         },
     },
+
+
+Automated Reingest
+-----------------
+
+`reingest/reingest.py` is a sample script to show how the reingest API can be automated.
+If the reingest type is 'full' and Archivematica API information is provided, it will automatically approve the reingest.
+
+The code is available on [Github](http://github.com/artefactual/automation-tools).
+
+
+### Configuration
+
+This script can be modified, to adjust how automated reingest works.
+
+Required parameters are:
+
+* `pipeline`: UUID of the pipeline to reingest the AIP on.
+* `reingest type`: Type of reingest to start. One of 'full', 'objects', 'metadata'
+* `AIP UUID`: UUID of the AIP to reingest.
+
+Optional parameters are:
+
+* `-c CONFIG, --config CONFIG`: Name of the processing config to use for a full reingest. This must already exist on the destination pipeline. Default: default
+* `--ss-url URL, -s URL`: Storage Service URL. Default: http://127.0.0.1:8000
+* `--am-url URL, -a URL`: Archivematica URL.  Username and API key should also be provided. Default: http://127.0.0.1
+* `-u USERNAME, --user USERNAME`: Username of the dashboard user to authenticate as.  Archivematica URL and API key should also be provided.
+* `-k KEY, --api-key KEY`: API key of the dashboard user.  Archivematica URL and username should also be provided.
+* `--debug`: Set logging level to DEBUG instead of INFO.
+
 
 Related Projects
 ----------------
